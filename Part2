@@ -1,0 +1,62 @@
+--[[
+    R6 Destransformer - Versão de Reversão
+    Foco: Trazer o R15 de volta na mesma posição do R6 e deletar o clone
+--]]
+
+local player = game.Players.LocalPlayer
+local currentChar = player.Character
+
+-- Verifica se o personagem atual é o clone R6 e se o R15 original ainda existe
+if not currentChar or currentChar.Name == player.Name and not currentChar:GetAttribute("IsTransformed") then 
+    warn("Você não está transformado em R6 ou o personagem original sumiu!")
+    return 
+end
+
+-- Tenta localizar o R15 original vasculhando o Workspace pelo nome do jogador
+local oldChar = nil
+for _, v in ipairs(game.Workspace:GetChildren()) do
+    if v:IsA("Model") and v.Name == player.Name and v ~= currentChar then
+        if v:FindFirstChildOfClass("Humanoid") and v:GetAttribute("IsTransformed") then
+            oldChar = v
+            break
+        end
+    end
+end
+
+if not oldChar then
+    warn("Personagem R15 original não foi encontrado no Workspace!")
+    return
+end
+
+local oldHum = oldChar:FindFirstChildOfClass("Humanoid")
+local oldRoot = oldChar:FindFirstChild("HumanoidRootPart")
+local r6Root = currentChar:FindFirstChild("HumanoidRootPart")
+
+if not oldRoot or not oldHum or not r6Root then return end
+
+-- 1. TELEPORTAR O R15 EXATAMENTE PARA O LUGAR DO R6
+oldRoot.CFrame = r6Root.CFrame
+
+-- 2. TORNAR O R15 VISÍVEL E ATIVADO NOVAMENTE
+for _, v in ipairs(oldChar:GetDescendants()) do
+    if v:IsA("BasePart") then
+        v.Anchored = false
+        v.CanCollide = true
+        -- Só deixa visível se não for a HumanoidRootPart original (que já é invisível por padrão)
+        if v.Name ~= "HumanoidRootPart" then
+            v.Transparency = 0
+        end
+    elseif v:IsA("Decal") then
+        v.Transparency = 0
+    end
+end
+
+-- 3. DEVOLVER CONTROLE E CÂMERA PARA O R15
+player.Character = oldChar
+game.Workspace.CurrentCamera.CameraSubject = oldHum
+
+-- 4. LIMPAR ATRIBUTOS E DELETAR O R6
+oldChar:SetAttribute("IsTransformed", nil)
+currentChar:Destroy()
+
+print("Destransformação executada com sucesso! R15 de volta no lugar.")
